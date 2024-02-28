@@ -1,0 +1,92 @@
+<jittershader name="default">
+	<description>Default Slab </description>
+	<param name="scale" type="float" default="1.0" />
+	<param name="tex0" type="int" default="0" />
+	<param name="modelViewProjectionMatrix" type="mat4" state="MODELVIEW_PROJECTION_MATRIX" />
+	<param name="textureMatrix0" type="mat4" state="TEXTURE0_MATRIX" />
+	<param name="position" type="vec3" state="POSITION" />
+	<param name="texcoord" type="vec2" state="TEXCOORD" />
+	<param name="color" type="vec4" state="COLOR" />
+	<param name="hue" type="float" default="0" />
+	<param name="hue_range" type="float" default="0.2" />
+	<param name="saturation" type="float" default="0" />
+	<param name="saturation_range" type="float" default="0.5" />
+	<param name="luminance" type="float" default="0" />
+	<param name="luminance_range" type="float" default="0.5" />
+	<language name="glsl" version="1.5">
+		<bind param="scale" program="fp" />
+		<bind param="tex0" program="fp" />
+		<bind param="modelViewProjectionMatrix" program="vp" />
+		<bind param="textureMatrix0" program="vp" />
+		<bind param="position" program="vp" />
+		<bind param="texcoord" program="vp" />
+		<bind param="color" program="vp" />
+		<bind param="hue" program="fp" />
+		<bind param="hue_range" program="fp" />
+		<bind param="saturation" program="fp" />
+		<bind param="saturation_range" program="fp" />
+		<bind param="luminance" program="fp" />
+		<bind param="luminance_range" program="fp" />
+		<program name="vp" type="vertex"  >
+		<![CDATA[
+			#version 330 core
+			
+			in vec3 position;
+			in vec2 texcoord;
+			in vec4 color;
+			out jit_PerVertex {
+				vec2 texcoord;
+				vec4 color;
+			} jit_out;
+			uniform mat4 modelViewProjectionMatrix;
+			uniform mat4 textureMatrix0;
+			
+			void main(void) {
+				gl_Position = modelViewProjectionMatrix*vec4(position, 1.);
+				jit_out.texcoord = vec2(textureMatrix0*vec4(texcoord, 0., 1.));
+				jit_out.color = color;
+			}
+		]]>
+		</program>
+		
+		<program name="fp" type="fragment"  >
+		<![CDATA[
+			#version 330 core
+			
+			in jit_PerVertex {
+				vec2 texcoord;
+				vec4 color;
+			} jit_in;
+			layout (location = 0) out vec4 outColor;
+			
+			uniform sampler2DRect tex0;
+			uniform float scale;
+			uniform float hue;
+			uniform float hue_range;
+			uniform float saturation;
+			uniform float saturation_range;
+			uniform float luminance;
+			uniform float luminance_range;
+			
+			void main(void) {
+				vec4 hsl = texture(tex0, jit_in.texcoord) * jit_in.color * scale;
+
+				float hue_upper_bound = hue + hue_range;
+				float hue_lower_bound = hue - hue_range;
+				float saturation_upper_bound = saturation + saturation_range;
+				float saturation_lower_bound = saturation - saturation_range;
+				float luminance_upper_bound = luminance + luminance_range;
+				float luminance_lower_bound = luminance - luminance_range;
+				// check hsl
+				if (hsl.r >= hue_lower_bound && hsl.r <= hue_upper_bound &&
+				   hsl.g >= saturation_lower_bound && hsl.g <= saturation_upper_bound &&
+				   hsl.b >= luminance_lower_bound && hsl.b <= luminance_upper_bound) {
+				   	outColor = vec4(1.0, 1.0, 1.0, hsl.a);
+				} else {
+					outColor = vec4(0., 0., 0., 0.);
+				}
+			}
+		]]>
+		</program>
+	</language>
+</jittershader>
